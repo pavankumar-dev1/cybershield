@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CyberShield</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: monospace; background: #f5f5f5; color: #111; min-height: 100vh; }
+
+  /* Topbar */
+  .topbar {
+    position: fixed; top: 0; left: 0; right: 0; height: 52px;
+    background: #111; color: #fff;
+    display: flex; align-items: center; padding: 0 16px; gap: 14px; z-index: 100;
+  }
+  .hamburger { background: none; border: none; cursor: pointer; display: flex; flex-direction: column; gap: 5px; padding: 4px; }
+  .hamburger span { display: block; width: 22px; height: 2px; background: #fff; transition: all 0.25s; }
+  .hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+  .hamburger.open span:nth-child(2) { opacity: 0; }
+  .hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+  .topbar-title { font-size: 14px; font-weight: bold; letter-spacing: 0.05em; }
+  .topbar-status { margin-left: auto; font-size: 11px; color: #aaa; }
+
+  /* Sidebar */
+  .sidebar {
+    position: fixed; top: 52px; left: 0; bottom: 0; width: 240px;
+    background: #fff; border-right: 1px solid #ddd;
+    transform: translateX(-100%); transition: transform 0.25s ease;
+    z-index: 90; display: flex; flex-direction: column;
+  }
+  .sidebar.open { transform: translateX(0); }
+  .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.25); z-index: 80; }
+  .overlay.show { display: block; }
+  .sidebar-nav { flex: 1; overflow-y: auto; padding: 8px 0; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px; padding: 11px 20px;
+    cursor: pointer; font-size: 13px; border: none; background: none;
+    width: 100%; text-align: left; color: #444;
+    border-left: 3px solid transparent; transition: background 0.1s; font-family: monospace;
+  }
+  .nav-item:hover { background: #f5f5f5; }
+  .nav-item.active { color: #111; font-weight: bold; border-left-color: #111; background: #f0f0f0; }
+  .nav-icon { font-size: 15px; width: 20px; text-align: center; }
+  .nav-badge { margin-left: auto; font-size: 10px; padding: 1px 6px; border-radius: 10px; font-weight: bold; }
+  .nav-badge.safe   { background: #e6f4ea; color: #1e7e34; }
+  .nav-badge.medium { background: #fff3cd; color: #856404; }
+  .nav-badge.high   { background: #fde8e8; color: #c0392b; }
+  .nav-badge.none   { background: #eee; color: #999; }
+  .sidebar-footer { padding: 12px 16px; border-top: 1px solid #eee; display: flex; flex-direction: column; gap: 8px; }
+  .run-all-btn {
+    width: 100%; padding: 9px; background: #111; color: #fff;
+    border: none; font-family: monospace; font-size: 12px;
+    cursor: pointer; border-radius: 2px; transition: background 0.15s;
+  }
+  .run-all-btn:hover { background: #333; }
+  .run-all-btn:disabled { background: #888; cursor: not-allowed; }
+
+  /* Main */
+  .main { margin-top: 52px; padding: 28px 20px 60px; max-width: 620px; margin-left: auto; margin-right: auto; }
+  .page { display: none; }
+  .page.active { display: block; }
+  .page-title { font-size: 16px; font-weight: bold; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #111; }
+
+  .card { background: #fff; border: 1px solid #ddd; border-radius: 3px; padding: 20px; margin-bottom: 14px; }
+
+  label { display: block; font-size: 11px; color: #777; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.05em; }
+  input[type="text"], input[type="password"], select {
+    width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 2px;
+    font-family: monospace; font-size: 13px; background: #fafafa;
+    outline: none; margin-bottom: 12px; transition: border-color 0.15s;
+  }
+  input:focus, select:focus { border-color: #555; background: #fff; }
+  .row { display: flex; gap: 12px; }
+  .row > div { flex: 1; }
+
+  .check-btn {
+    padding: 8px 18px; background: #111; color: #fff; border: none;
+    font-family: monospace; font-size: 12px; border-radius: 2px;
+    cursor: pointer; transition: background 0.15s;
+  }
+  .check-btn:hover { background: #333; }
+  .check-btn:disabled { background: #888; cursor: not-allowed; }
+
+  /* Result box */
+  .result-box { display: none; margin-top: 12px; padding: 12px 14px; border-radius: 2px; font-size: 12px; border-left: 3px solid; }
+  .result-box.safe   { border-color: #1e7e34; background: #e6f4ea; color: #1e7e34; }
+  .result-box.medium { border-color: #856404; background: #fff3cd; color: #856404; }
+  .result-box.high   { border-color: #c0392b; background: #fde8e8; color: #c0392b; }
+  .result-box.show   { display: block; }
+
+  .result-title { font-weight: bold; margin-bottom: 6px; font-size: 13px; }
+  .result-list { margin-top: 6px; padding-left: 0; list-style: none; }
+  .result-list li { padding: 2px 0; }
+  .result-list li::before { content: "• "; }
+
+  .tag {
+    display: inline-block; font-size: 11px; padding: 1px 7px;
+    background: #fde8e8; color: #c0392b; border-radius: 2px; margin: 2px 2px 0 0;
+  }
+  .tag.safe-tag { background: #e6f4ea; color: #1e7e34; }
+
+  /* Score bar */
+  .score-bar { margin-top: 8px; }
+  .score-track { background: #ddd; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 4px; }
+  .score-fill { height: 6px; border-radius: 3px; transition: width 0.4s; }
+  .score-fill.safe   { background: #1e7e34; }
+  .score-fill.medium { background: #856404; }
+  .score-fill.high   { background: #c0392b; }
+
+  /* Dashboard */
+  .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+  .dash-card { background: #fff; border: 1px solid #ddd; border-radius: 3px; padding: 16px; }
+  .dash-card .d-label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+  .dash-card .d-value { font-size: 22px; font-weight: bold; }
+  .dash-card .d-msg   { font-size: 11px; color: #888; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .d-value.safe   { color: #1e7e34; }
+  .d-value.medium { color: #856404; }
+  .d-value.high   { color: #c0392b; }
+
+  .overall-card {
+    background: #fff; border: 1px solid #ddd; border-radius: 3px;
+    padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;
+  }
+  .overall-card .title { font-size: 13px; font-weight: bold; }
+  .overall-card .sub   { font-size: 11px; color: #888; margin-top: 2px; }
+  .overall-badge { font-size: 12px; font-weight: bold; padding: 5px 14px; border-radius: 2px; }
+  .overall-badge.safe   { background: #e6f4ea; color: #1e7e34; }
+  .overall-badge.medium { background: #fff3cd; color: #856404; }
+  .overall-badge.high   { background: #fde8e8; color: #c0392b; }
+
+  /* Loading spinner */
+  .spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 0.6s linear infinite; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .hint { font-size: 11px; color: #888; margin-top: 12px; }
+</style>
+</head>
+<body>
+
+<!-- Topbar -->
+<div class="topbar">
+  <button class="hamburger" id="hamburger" onclick="toggleSidebar()">
+    <span></span><span></span><span></span>
+  </button>
+  <span class="topbar-title">🛡 CyberShield</span>
+  <span class="topbar-status" id="server-status">● connecting...</span>
+</div>
+
+<!-- Overlay -->
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+  <nav class="sidebar-nav">
+    <button class="nav-item active" onclick="navigate('dashboard')">
+      <span class="nav-icon">📊</span> Dashboard
+    </button>
+    <button class="nav-item" onclick="navigate('footprint')">
+      <span class="nav-icon">🔍</span> Digital Footprint
+      <span class="nav-badge none" id="nb-footprint">—</span>
+    </button>
+    <button class="nav-item" onclick="navigate('password')">
+      <span class="nav-icon">🔑</span> Password Strength
+      <span class="nav-badge none" id="nb-password">—</span>
+    </button>
+    <button class="nav-item" onclick="navigate('phishing')">
+      <span class="nav-icon">🎣</span> Phishing Detector
+      <span class="nav-badge none" id="nb-phishing">—</span>
+    </button>
+    <button class="nav-item" onclick="navigate('permissions')">
+      <span class="nav-icon">📱</span> App Permissions
+      <span class="nav-badge none" id="nb-perms">—</span>
+    </button>
+    <button class="nav-item" onclick="navigate('wifi')">
+      <span class="nav-icon">📶</span> WiFi Risk
+      <span class="nav-badge none" id="nb-wifi">—</span>
+    </button>
+  </nav>
+  <div class="sidebar-footer">
+    <button class="run-all-btn" id="run-all-btn" onclick="runAll()">▶ Run All Checks</button>
+  </div>
+</div>
+
+<!-- Main -->
+<div class="main">
+
+  <!-- Dashboard -->
+  <div class="page active" id="page-dashboard">
+    <div class="page-title">📊 Cyber Risk Dashboard</div>
+    <div class="dash-grid">
+      <div class="dash-card">
+        <div class="d-label">Digital Footprint</div>
+        <div class="d-value safe" id="d-footprint">—</div>
+        <div class="d-msg" id="dm-footprint">Not checked</div>
+      </div>
+      <div class="dash-card">
+        <div class="d-label">Password</div>
+        <div class="d-value safe" id="d-password">—</div>
+        <div class="d-msg" id="dm-password">Not checked</div>
+      </div>
+      <div class="dash-card">
+        <div class="d-label">Phishing / QR</div>
+        <div class="d-value safe" id="d-phishing">—</div>
+        <div class="d-msg" id="dm-phishing">Not checked</div>
+      </div>
+      <div class="dash-card">
+        <div class="d-label">App Permissions</div>
+        <div class="d-value safe" id="d-perms">—</div>
+        <div class="d-msg" id="dm-perms">Not checked</div>
+      </div>
+      <div class="dash-card">
+        <div class="d-label">WiFi Risk</div>
+        <div class="d-value safe" id="d-wifi">—</div>
+        <div class="d-msg" id="dm-wifi">Not checked</div>
+      </div>
+      <div class="dash-card">
+        <div class="d-label">Overall Score</div>
+        <div class="d-value safe" id="d-score">—</div>
+        <div class="d-msg" id="dm-score">Run all checks</div>
+      </div>
+    </div>
+    <div class="overall-card">
+      <div>
+        <div class="title">Overall Security Status</div>
+        <div class="sub" id="d-summary">Use sidebar or run all checks to analyze.</div>
+      </div>
+      <span class="overall-badge safe" id="d-overall">Not analyzed</span>
+    </div>
+  </div>
+
+  <!-- Digital Footprint -->
+  <div class="page" id="page-footprint">
+    <div class="page-title">🔍 Digital Footprint Checker</div>
+    <div class="card">
+      <label>Email / Username / Text to scan</label>
+      <input type="text" id="footprint-input" placeholder="e.g. user@example.com or any text">
+      <button class="check-btn" id="btn-footprint" onclick="checkFootprint()">Check</button>
+      <div class="result-box" id="footprint-result"></div>
+    </div>
+    <p class="hint">Scans for known data breach keywords in the text.</p>
+  </div>
+
+  <!-- Password -->
+  <div class="page" id="page-password">
+    <div class="page-title">🔑 Password Strength Analyzer</div>
+    <div class="card">
+      <label>Password</label>
+      <input type="password" id="password-input" placeholder="Enter password to analyze">
+      <button class="check-btn" id="btn-password" onclick="checkPassword()">Check</button>
+      <div class="result-box" id="password-result"></div>
+    </div>
+    <p class="hint">Password is analyzed locally — never sent or stored.</p>
+  </div>
+
+  <!-- Phishing -->
+  <div class="page" id="page-phishing">
+    <div class="page-title">🎣 Phishing / QR Link Detector</div>
+    <div class="card">
+      <label>URL or QR content</label>
+      <input type="text" id="url-input" placeholder="e.g. http://free-win-login.com">
+      <button class="check-btn" id="btn-phishing" onclick="checkPhishing()">Check</button>
+      <div class="result-box" id="url-result"></div>
+    </div>
+    <p class="hint">Analyzes URL structure for phishing patterns.</p>
+  </div>
+
+  <!-- Permissions -->
+  <div class="page" id="page-permissions">
+    <div class="page-title">📱 App Permission Analyzer</div>
+    <div class="card">
+      <label>Permissions (comma-separated)</label>
+      <input type="text" id="perms-input" placeholder="e.g. READ_SMS, CAMERA, ACCESS_FINE_LOCATION">
+      <button class="check-btn" id="btn-perms" onclick="checkPermissions()">Check</button>
+      <div class="result-box" id="perms-result"></div>
+    </div>
+    <p class="hint">Dangerous: READ_SMS, SEND_SMS, RECORD_AUDIO, READ_CONTACTS, ACCESS_FINE_LOCATION, CAMERA...</p>
+  </div>
+
+  <!-- WiFi -->
+  <div class="page" id="page-wifi">
+    <div class="page-title">📶 Public WiFi Risk Indicator</div>
+    <div class="card">
+      <div class="row">
+        <div>
+          <label>Encryption</label>
+          <select id="wifi-enc">
+            <option value="WPA2">WPA2 (Secure)</option>
+            <option value="WPA3">WPA3 (Most Secure)</option>
+            <option value="WPA">WPA (Weak)</option>
+            <option value="WEP">WEP (Broken)</option>
+            <option value="OPEN">OPEN (No encryption)</option>
+          </select>
+        </div>
+        <div>
+          <label>Network Type</label>
+          <select id="wifi-public">
+            <option value="false">Private</option>
+            <option value="true">Public</option>
+          </select>
+        </div>
+      </div>
+      <button class="check-btn" id="btn-wifi" onclick="checkWifi()">Check</button>
+      <div class="result-box" id="wifi-result"></div>
+    </div>
+    <p class="hint">Open public networks are the most dangerous.</p>
+  </div>
+
+</div>
+
+<script>
+const API = "";  // same origin (Flask serves both)
+
+// ── Sidebar ───────────────────────────────────────────────────────────────────
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('hamburger').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('show');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('hamburger').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+}
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+function navigate(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(item => {
+    if (item.getAttribute('onclick').includes("'" + page + "'")) item.classList.add('active');
+  });
+  closeSidebar();
+}
+
+// ── API helper ────────────────────────────────────────────────────────────────
+async function post(endpoint, body) {
+  const res = await fetch(API + endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  return res.json();
+}
+
+// ── UI helpers ────────────────────────────────────────────────────────────────
+function statusClass(s) {
+  if (!s) return 'safe';
+  s = s.toUpperCase();
+  if (s === 'HIGH') return 'high';
+  if (s === 'MEDIUM' || s === 'MED') return 'medium';
+  return 'safe';
+}
+
+function setNavBadge(id, status) {
+  const el = document.getElementById(id);
+  const cls = statusClass(status);
+  el.textContent = status || '—';
+  el.className = 'nav-badge ' + (status ? cls : 'none');
+}
+
+function setDashCard(valId, msgId, status, msg) {
+  const v = document.getElementById(valId);
+  const m = document.getElementById(msgId);
+  v.textContent = status || '—';
+  v.className = 'd-value ' + statusClass(status);
+  if (m) m.textContent = msg || '';
+}
+
+function showResult(boxId, status, html) {
+  const el = document.getElementById(boxId);
+  el.className = 'result-box ' + statusClass(status) + ' show';
+  el.innerHTML = html;
+}
+
+function setLoading(btnId, loading) {
+  const btn = document.getElementById(btnId);
+  if (loading) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Checking...';
+  } else {
+    btn.disabled = false;
+    btn.innerHTML = 'Check';
+  }
+}
+
+// ── Server status check ───────────────────────────────────────────────────────
+async function checkServer() {
+  try {
+    const res = await fetch('/');
+    const el = document.getElementById('server-status');
+    if (res.ok) {
+      el.textContent = '● connected';
+      el.style.color = '#4ade80';
+    }
+  } catch {
+    const el = document.getElementById('server-status');
+    el.textContent = '● offline';
+    el.style.color = '#f87171';
+  }
+}
+checkServer();
+
+// ── Module checks ─────────────────────────────────────────────────────────────
+
+async function checkFootprint() {
+  const text = document.getElementById('footprint-input').value.trim();
+  if (!text) return;
+  setLoading('btn-footprint', true);
+  try {
+    const r = await post('/api/footprint', { text });
+    const html = `
+      <div class="result-title">${r.status === 'HIGH' ? '⚠' : '✓'} ${r.message}</div>
+      ${r.keywords.length ? '<div>' + r.keywords.map(k => `<span class="tag">${k}</span>`).join('') + '</div>' : ''}
+    `;
+    showResult('footprint-result', r.status, html);
+    setNavBadge('nb-footprint', r.status);
+    setDashCard('d-footprint', 'dm-footprint', r.status, r.message);
+  } catch(e) {
+    showResult('footprint-result', 'high', '<div class="result-title">⚠ Could not connect to backend</div>');
+  }
+  setLoading('btn-footprint', false);
+}
+
+async function checkPassword() {
+  const password = document.getElementById('password-input').value;
+  if (!password) return;
+  setLoading('btn-password', true);
+  try {
+    const r = await post('/api/password', { password });
+    const pct = (r.score / r.max_score) * 100;
+    const cls = statusClass(r.status);
+    const html = `
+      <div class="result-title">${r.message}</div>
+      <div class="score-bar">
+        <div class="score-track"><div class="score-fill ${cls}" style="width:${pct}%"></div></div>
+      </div>
+      ${r.tips.length ? '<ul class="result-list" style="margin-top:8px">' + r.tips.map(t => `<li>${t}</li>`).join('') + '</ul>' : ''}
+    `;
+    showResult('password-result', r.status, html);
+    setNavBadge('nb-password', r.status);
+    setDashCard('d-password', 'dm-password', r.status, r.message);
+  } catch(e) {
+    showResult('password-result', 'high', '<div class="result-title">⚠ Could not connect to backend</div>');
+  }
+  setLoading('btn-password', false);
+}
+
+async function checkPhishing() {
+  const url = document.getElementById('url-input').value.trim();
+  if (!url) return;
+  setLoading('btn-phishing', true);
+  try {
+    const r = await post('/api/phishing', { url });
+    const html = `
+      <div class="result-title">${r.status !== 'SAFE' ? '⚠' : '✓'} ${r.message}</div>
+      ${r.flags.length ? '<ul class="result-list">' + r.flags.map(f => `<li>${f}</li>`).join('') + '</ul>' : ''}
+    `;
+    showResult('url-result', r.status, html);
+    setNavBadge('nb-phishing', r.status);
+    setDashCard('d-phishing', 'dm-phishing', r.status, r.message);
+  } catch(e) {
+    showResult('url-result', 'high', '<div class="result-title">⚠ Could not connect to backend</div>');
+  }
+  setLoading('btn-phishing', false);
+}
+
+async function checkPermissions() {
+  const input = document.getElementById('perms-input').value.trim();
+  if (!input) return;
+  setLoading('btn-perms', true);
+  try {
+    const perms = input.split(',').map(p => p.trim()).filter(Boolean);
+    const r = await post('/api/permissions', { permissions: perms });
+    const html = `
+      <div class="result-title">${r.risky.length ? '⚠' : '✓'} ${r.message}</div>
+      ${r.risky.length ? '<ul class="result-list">' + r.risky.map(p => `<li><strong>${p.permission}</strong> — ${p.reason}</li>`).join('') + '</ul>' : ''}
+      ${r.safe.length ? '<div style="margin-top:6px">' + r.safe.map(p => `<span class="tag safe-tag">${p}</span>`).join('') + '</div>' : ''}
+    `;
+    showResult('perms-result', r.status, html);
+    setNavBadge('nb-perms', r.status);
+    setDashCard('d-perms', 'dm-perms', r.status, r.message);
+  } catch(e) {
+    showResult('perms-result', 'high', '<div class="result-title">⚠ Could not connect to backend</div>');
+  }
+  setLoading('btn-perms', false);
+}
+
+async function checkWifi() {
+  const encryption = document.getElementById('wifi-enc').value;
+  const is_public = document.getElementById('wifi-public').value === 'true';
+  setLoading('btn-wifi', true);
+  try {
+    const r = await post('/api/wifi', { encryption, is_public });
+    const html = `
+      <div class="result-title">${r.status !== 'SAFE' ? '⚠' : '✓'} ${r.message}</div>
+      ${r.flags.length ? '<ul class="result-list">' + r.flags.map(f => `<li>${f}</li>`).join('') + '</ul>' : ''}
+      ${r.tips.length ? '<ul class="result-list" style="margin-top:6px; opacity:0.8">' + r.tips.map(t => `<li>💡 ${t}</li>`).join('') + '</ul>' : ''}
+    `;
+    showResult('wifi-result', r.status, html);
+    setNavBadge('nb-wifi', r.status);
+    setDashCard('d-wifi', 'dm-wifi', r.status, r.message);
+  } catch(e) {
+    showResult('wifi-result', 'high', '<div class="result-title">⚠ Could not connect to backend</div>');
+  }
+  setLoading('btn-wifi', false);
+}
+
+// ── Run All ───────────────────────────────────────────────────────────────────
+async function runAll() {
+  const btn = document.getElementById('run-all-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Running...';
+
+  const body = {
+    text:        document.getElementById('footprint-input').value || '',
+    password:    document.getElementById('password-input').value || '',
+    url:         document.getElementById('url-input').value || '',
+    permissions: document.getElementById('perms-input').value || '',
+    encryption:  document.getElementById('wifi-enc').value,
+    is_public:   document.getElementById('wifi-public').value === 'true'
+  };
+
+  try {
+    const r = await post('/api/scan-all', body);
+    const res = r.results;
+    const db  = r.dashboard;
+
+    // Update nav badges & dash cards
+    const map = [
+      ['Digital Footprint', 'nb-footprint', 'd-footprint', 'dm-footprint'],
+      ['Password Strength', 'nb-password',  'd-password',  'dm-password'],
+      ['Phishing / QR',     'nb-phishing',  'd-phishing',  'dm-phishing'],
+      ['App Permissions',   'nb-perms',     'd-perms',     'dm-perms'],
+      ['WiFi Risk',         'nb-wifi',      'd-wifi',      'dm-wifi'],
+    ];
+    for (const [key, nb, dv, dm] of map) {
+      const item = res[key];
+      if (item) {
+        setNavBadge(nb, item.status);
+        setDashCard(dv, dm, item.status, item.message);
+      }
+    }
+
+    // Overall
+    const o = document.getElementById('d-overall');
+    const s = document.getElementById('d-summary');
+    const sc = document.getElementById('d-score');
+    const scm = document.getElementById('dm-score');
+
+    o.textContent = db.overall;
+    o.className = 'overall-badge ' + statusClass(db.overall);
+    s.textContent = db.summary;
+    sc.textContent = `${db.score}/${db.max_score}`;
+    sc.className = 'd-value ' + statusClass(db.overall);
+    scm.textContent = 'Risk score';
+
+    navigate('dashboard');
+  } catch(e) {
+    alert('Could not connect to backend. Make sure Flask is running on port 5000.');
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '▶ Run All Checks';
+}
+</script>
+</body>
+</html>
