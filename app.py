@@ -97,6 +97,9 @@ def api_scan_all():
         "dashboard": dashboard
     })
 
+import os
+
 if __name__ == "__main__":
-    print("\n🛡  CyberShield running at http://localhost:5000\n")
-    app.run(debug=True, port=5000)
+    port = int(os.environ.get("PORT", 10000))
+    print(f"\n🛡 CyberShield running on port {port}\n")
+    app.run(host="0.0.0.0", port=port)
