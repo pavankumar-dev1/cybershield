@@ -98,5 +98,5 @@ def api_scan_all():
     })
 
 if __name__ == "__main__":
-    print("\n🛡  CyberShield running at http://localhost:5000\n")
-    app.run(debug=True, port=5000)
+    print("\n🛡  CyberShield running...\n")
+    app.run(host="0.0.0.0", port=10000)
