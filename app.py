@@ -14,55 +14,84 @@ from cyber_risk_dashboard import build_dashboard
 app = Flask(__name__)
 CORS(app)
 
+
+def _get_json_payload():
+    """Return a JSON object, or None when the request body is invalid."""
+    data = request.get_json(silent=True)
+    return data if isinstance(data, dict) else None
+
+
+def _invalid_json_response():
+    return jsonify({"error": "Request body must be a valid JSON object"}), 400
+
+
 # ── Serve frontend ────────────────────────────────────────────────────────────
 @app.route("/")
 def index():
     return render_template("index.html")
 
+
 # ── API Routes ────────────────────────────────────────────────────────────────
 
 @app.route("/api/footprint", methods=["POST"])
 def api_footprint():
-    data = request.get_json()
+    data = _get_json_payload()
+    if data is None:
+        return _invalid_json_response()
     text = data.get("text", "")
     if not text:
         return jsonify({"error": "No text provided"}), 400
     return jsonify(check_digital_footprint(text))
 
+
 @app.route("/api/password", methods=["POST"])
 def api_password():
-    data = request.get_json()
+    data = _get_json_payload()
+    if data is None:
+        return _invalid_json_response()
     password = data.get("password", "")
     if not password:
         return jsonify({"error": "No password provided"}), 400
     return jsonify(analyze_password(password))
 
+
 @app.route("/api/phishing", methods=["POST"])
 def api_phishing():
-    data = request.get_json()
+    data = _get_json_payload()
+    if data is None:
+        return _invalid_json_response()
     url = data.get("url", "")
     if not url:
         return jsonify({"error": "No URL provided"}), 400
     return jsonify(detect_phishing(url))
 
+
 @app.route("/api/permissions", methods=["POST"])
 def api_permissions():
-    data = request.get_json()
+    data = _get_json_payload()
+    if data is None:
+        return _invalid_json_response()
     perms = data.get("permissions", [])
     if isinstance(perms, str):
         perms = [p.strip() for p in perms.split(",")]
     return jsonify(analyze_permissions(perms))
 
+
 @app.route("/api/wifi", methods=["POST"])
 def api_wifi():
-    data = request.get_json()
+    data = _get_json_payload()
+    if data is None:
+        return _invalid_json_response()
     encryption = data.get("encryption", "WPA2")
     is_public = data.get("is_public", False)
     return jsonify(wifi_risk(encryption, is_public))
 
+
 @app.route("/api/scan-all", methods=["POST"])
 def api_scan_all():
-    data = request.get_json()
+    data = _get_json_payload()
+    if data is None:
+        return _invalid_json_response()
 
     results = {}
 
@@ -97,7 +126,6 @@ def api_scan_all():
         "dashboard": dashboard
     })
 
-import os
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
