@@ -37,10 +37,10 @@ A Flask-based cybersecurity toolkit that brings several practical security check
    source .venv/bin/activate
    ```
 
-3. Install dependencies:
+3. Install the pinned project dependencies:
 
    ```bash
-   pip install flask flask-cors
+   python -m pip install -r requirements.txt
    ```
 
 4. Start the application:
@@ -49,7 +49,7 @@ A Flask-based cybersecurity toolkit that brings several practical security check
    python app.py
    ```
 
-5. Open http://127.0.0.1:5000 in your browser.
+5. Open http://127.0.0.1:10000 in your browser. The application uses port **10000** by default; if you set the `PORT` environment variable, use that port instead.
 
 ## Responsible use
 
