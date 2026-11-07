@@ -25,6 +25,39 @@ def _invalid_json_response():
     return jsonify({"error": "Request body must be a valid JSON object"}), 400
 
 
+def _validate_string_fields(data, *fields):
+    """Reject supplied fields that should contain text, not other JSON types."""
+    for field in fields:
+        if field in data and not isinstance(data[field], str):
+            return jsonify({"error": f"Field '{field}' must be a string"}), 400
+    return None
+
+
+def _validate_permissions_field(data):
+    """Accept comma-separated text or a list containing only strings."""
+    if "permissions" not in data:
+        return None
+
+    permissions = data["permissions"]
+    if isinstance(permissions, str):
+        return None
+    if isinstance(permissions, list) and all(
+        isinstance(permission, str) for permission in permissions
+    ):
+        return None
+
+    return jsonify({
+        "error": "Field 'permissions' must be a string or a list of strings"
+    }), 400
+
+
+def _validate_is_public_field(data):
+    """Require a JSON boolean for the public-network flag."""
+    if "is_public" in data and not isinstance(data["is_public"], bool):
+        return jsonify({"error": "Field 'is_public' must be a boolean"}), 400
+    return None
+
+
 # ── Serve frontend ────────────────────────────────────────────────────────────
 @app.route("/")
 def index():
@@ -38,6 +71,9 @@ def api_footprint():
     data = _get_json_payload()
     if data is None:
         return _invalid_json_response()
+    validation_error = _validate_string_fields(data, "text")
+    if validation_error:
+        return validation_error
     text = data.get("text", "")
     if not text:
         return jsonify({"error": "No text provided"}), 400
@@ -49,6 +85,9 @@ def api_password():
     data = _get_json_payload()
     if data is None:
         return _invalid_json_response()
+    validation_error = _validate_string_fields(data, "password")
+    if validation_error:
+        return validation_error
     password = data.get("password", "")
     if not password:
         return jsonify({"error": "No password provided"}), 400
@@ -60,6 +99,9 @@ def api_phishing():
     data = _get_json_payload()
     if data is None:
         return _invalid_json_response()
+    validation_error = _validate_string_fields(data, "url")
+    if validation_error:
+        return validation_error
     url = data.get("url", "")
     if not url:
         return jsonify({"error": "No URL provided"}), 400
@@ -71,6 +113,9 @@ def api_permissions():
     data = _get_json_payload()
     if data is None:
         return _invalid_json_response()
+    validation_error = _validate_permissions_field(data)
+    if validation_error:
+        return validation_error
     perms = data.get("permissions", [])
     if isinstance(perms, str):
         perms = [p.strip() for p in perms.split(",")]
@@ -82,6 +127,12 @@ def api_wifi():
     data = _get_json_payload()
     if data is None:
         return _invalid_json_response()
+    validation_error = _validate_string_fields(data, "encryption")
+    if validation_error:
+        return validation_error
+    validation_error = _validate_is_public_field(data)
+    if validation_error:
+        return validation_error
     encryption = data.get("encryption", "WPA2")
     is_public = data.get("is_public", False)
     return jsonify(wifi_risk(encryption, is_public))
@@ -92,6 +143,18 @@ def api_scan_all():
     data = _get_json_payload()
     if data is None:
         return _invalid_json_response()
+
+    validation_error = _validate_string_fields(
+        data, "text", "password", "url", "encryption"
+    )
+    if validation_error:
+        return validation_error
+    validation_error = _validate_permissions_field(data)
+    if validation_error:
+        return validation_error
+    validation_error = _validate_is_public_field(data)
+    if validation_error:
+        return validation_error
 
     results = {}
 
