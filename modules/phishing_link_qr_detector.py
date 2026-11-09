@@ -1,45 +1,59 @@
-import re
+import ipaddress
+from urllib.parse import urlsplit
 
 SUSPICIOUS_TERMS = ["login", "verify", "update", "secure", "free", "win", "prize",
                     "click", "confirm", "account", "suspend", "urgent", "password"]
 
 SUSPICIOUS_TLDS = [".xyz", ".tk", ".ml", ".cf", ".gq", ".pw"]
 
+
 def detect_phishing(url):
     score = 0
     flags = []
     text = url.lower()
 
+    # Parse the URL so host-based checks do not inspect paths or query strings.
+    try:
+        parsed_url = urlsplit(text)
+        hostname = (parsed_url.hostname or "").rstrip(".")
+    except ValueError:
+        parsed_url = None
+        hostname = ""
+
     # HTTP (not HTTPS)
-    if text.startswith("http://"):
+    if parsed_url and parsed_url.scheme == "http":
         score += 2
         flags.append("Uses HTTP (not secure)")
 
     # Suspicious keywords
-    matched = [t for t in SUSPICIOUS_TERMS if t in text]
+    matched = [term for term in SUSPICIOUS_TERMS if term in text]
     score += len(matched)
     if matched:
         flags.append(f"Suspicious words: {', '.join(matched)}")
 
-    # IP address URL
-    if re.search(r"https?://\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", text):
+    # IP address URL (supports valid IPv4 and IPv6 literals).
+    is_ip_address = False
+    if hostname:
+        try:
+            ipaddress.ip_address(hostname)
+            is_ip_address = True
+        except ValueError:
+            pass
+
+    if is_ip_address:
         score += 3
         flags.append("URL uses IP address instead of domain")
 
-    # Suspicious TLD
+    # Suspicious TLD: inspect only the actual hostname suffix.
     for tld in SUSPICIOUS_TLDS:
-        if tld in text:
+        if hostname.endswith(tld):
             score += 2
             flags.append(f"Suspicious domain extension: {tld}")
 
-    # Too many subdomains
-    try:
-        domain_part = re.sub(r"https?://", "", text).split("/")[0]
-        if domain_part.count(".") > 3:
-            score += 1
-            flags.append("Too many subdomains")
-    except:
-        pass
+    # Too many subdomains (exclude IP literals).
+    if hostname and not is_ip_address and len(hostname.split(".")) > 4:
+        score += 1
+        flags.append("Too many subdomains")
 
     if score >= 4:
         status = "HIGH"
