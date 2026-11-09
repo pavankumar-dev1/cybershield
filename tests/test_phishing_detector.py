@@ -21,6 +21,31 @@ class PhishingDetectorTests(unittest.TestCase):
         self.assertTrue(any("IP address" in flag for flag in result["flags"]))
         self.assertTrue(any("Suspicious words" in flag for flag in result["flags"]))
 
+    def test_suspicious_tld_on_hostname_is_flagged(self):
+        result = detect_phishing("https://example.xyz")
+        self.assertIn("Suspicious domain extension: .xyz", result["flags"])
+        self.assertEqual(result["status"], "MEDIUM")
+
+    def test_suspicious_tld_in_path_is_not_treated_as_domain_tld(self):
+        result = detect_phishing("https://example.com/download.xyz")
+        self.assertEqual(result["status"], "SAFE")
+        self.assertFalse(any("domain extension" in flag for flag in result["flags"]))
+
+    def test_suspicious_tld_in_query_is_not_treated_as_domain_tld(self):
+        result = detect_phishing("https://example.com/search?q=.xyz")
+        self.assertEqual(result["status"], "SAFE")
+        self.assertFalse(any("domain extension" in flag for flag in result["flags"]))
+
+    def test_suspicious_tld_inside_longer_domain_suffix_is_not_flagged(self):
+        result = detect_phishing("https://example.xyz.evil.com")
+        self.assertEqual(result["status"], "SAFE")
+        self.assertFalse(any("domain extension" in flag for flag in result["flags"]))
+
+    def test_valid_ipv6_literal_is_flagged(self):
+        result = detect_phishing("https://[2001:db8::1]/")
+        self.assertEqual(result["status"], "MEDIUM")
+        self.assertIn("URL uses IP address instead of domain", result["flags"])
+
 
 if __name__ == "__main__":
     unittest.main()
