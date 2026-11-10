@@ -20,6 +20,11 @@ class PasswordStrengthTests(unittest.TestCase):
         self.assertIn("Add numbers", result["tips"])
         self.assertIn("Add special characters (!@#$...)", result["tips"])
 
+    def test_whitespace_does_not_count_as_a_special_character(self):
+        result = analyze_password("Abcdefg1 ")
+        self.assertNotEqual(result["score"], 5)
+        self.assertIn("Add special characters (!@#$...)", result["tips"])
+
     def test_empty_password_is_weak_and_returns_all_tips(self):
         result = analyze_password("")
         self.assertEqual(result["status"], "WEAK")
