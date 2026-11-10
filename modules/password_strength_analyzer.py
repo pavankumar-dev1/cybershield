@@ -24,7 +24,7 @@ def analyze_password(password):
     else:
         tips.append("Add numbers")
 
-    if re.search(r"[^A-Za-z0-9]", password):
+    if re.search(r"[^A-Za-z0-9\s]", password):
         score += 1
     else:
         tips.append("Add special characters (!@#$...)")
