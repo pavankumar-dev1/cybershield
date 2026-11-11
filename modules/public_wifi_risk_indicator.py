@@ -8,8 +8,12 @@ ENCRYPTION_SCORES = {
 
 def wifi_risk(encryption, is_public):
     enc = encryption.upper().strip()
-    enc_score = ENCRYPTION_SCORES.get(enc, 2)
+    enc_score = ENCRYPTION_SCORES.get(enc)
     flags = []
+    known_encryption = enc in ENCRYPTION_SCORES
+
+    if not known_encryption:
+        flags.append("Unknown encryption type — security could not be verified")
 
     if is_public:
         flags.append("Connected to a public network")
@@ -25,6 +29,8 @@ def wifi_risk(encryption, is_public):
     if enc == "OPEN" and is_public:
         status = "HIGH"
     elif enc in ["OPEN", "WEP"] or (is_public and enc == "WPA"):
+        status = "MEDIUM"
+    elif not known_encryption:
         status = "MEDIUM"
     else:
         status = "SAFE"
