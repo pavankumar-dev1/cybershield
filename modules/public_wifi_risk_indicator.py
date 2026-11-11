@@ -8,7 +8,6 @@ ENCRYPTION_SCORES = {
 
 def wifi_risk(encryption, is_public):
     enc = encryption.upper().strip()
-    enc_score = ENCRYPTION_SCORES.get(enc)
     flags = []
     known_encryption = enc in ENCRYPTION_SCORES
 
