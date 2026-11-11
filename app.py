@@ -12,7 +12,14 @@ from public_wifi_risk_indicator import wifi_risk
 from cyber_risk_dashboard import build_dashboard
 
 app = Flask(__name__)
+# Keep request bodies bounded so oversized JSON cannot consume excessive memory.
+app.config["MAX_CONTENT_LENGTH"] = 64 * 1024
 CORS(app)
+
+
+@app.errorhandler(413)
+def request_too_large(_error):
+    return jsonify({"error": "Request body exceeds the 64 KB limit"}), 413
 
 
 def _get_json_payload():
