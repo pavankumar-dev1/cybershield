@@ -53,7 +53,7 @@ class PasswordStrengthTests(unittest.TestCase):
         self.assertEqual(result["score"], 5)
 
     def test_combining_mark_is_not_misclassified_as_special(self):
-        result = analyze_password("Abcdefg1\u0301")
+        result = analyze_password("Abcdefghijk1\u0301")
         self.assertEqual(result["score"], 4)
         self.assertIn("Add special characters (!@#$...)", result["tips"])
 
