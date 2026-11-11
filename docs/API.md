@@ -1,6 +1,6 @@
 # CyberShield API
 
-The Flask application exposes JSON POST endpoints. Send a JSON object with the fields listed below. Invalid JSON, non-object JSON, and fields with unsupported JSON types are rejected with HTTP 400.
+The Flask application exposes JSON POST endpoints. Send a JSON object with the fields listed below. Request bodies are limited to 64 KB; larger bodies receive HTTP 413 with a JSON error. Invalid JSON, non-object JSON, and fields with unsupported JSON types are rejected with HTTP 400.
 
 | Endpoint | Request fields | Purpose |
 |---|---|---|
@@ -27,7 +27,7 @@ curl -X POST http://127.0.0.1:10000/api/wifi \
 
 ## Error format
 
-Validation errors use HTTP 400 and a JSON object containing an `error` message, for example:
+Validation errors use HTTP 400 and a JSON object containing an `error` message. Requests larger than 64 KB receive HTTP 413. For example:
 
 ```json
 {"error": "Field 'url' must be a string"}
