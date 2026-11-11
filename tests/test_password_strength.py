@@ -31,6 +31,32 @@ class PasswordStrengthTests(unittest.TestCase):
         self.assertEqual(result["score"], 0)
         self.assertEqual(len(result["tips"]), 5)
 
+    def test_unicode_uppercase_and_lowercase_letters_are_recognized(self):
+        result = analyze_password("Äbcdefg1!")
+        self.assertEqual(result["status"], "STRONG")
+        self.assertEqual(result["score"], 5)
+
+    def test_unicode_letters_are_not_misclassified_as_special_characters(self):
+        result = analyze_password("Äbcdefg1")
+        self.assertEqual(result["score"], 4)
+        self.assertIn("Add special characters (!@#$...)", result["tips"])
+
+    def test_arabic_indic_decimal_digit_counts_as_a_number(self):
+        result = analyze_password("Abcdefg١")
+        self.assertEqual(result["score"], 4)
+        self.assertNotIn("Add numbers", result["tips"])
+        self.assertIn("Add special characters (!@#$...)", result["tips"])
+
+    def test_unicode_punctuation_counts_as_a_special_character(self):
+        result = analyze_password("Abcdefg١—")
+        self.assertEqual(result["status"], "STRONG")
+        self.assertEqual(result["score"], 5)
+
+    def test_combining_mark_is_not_misclassified_as_special(self):
+        result = analyze_password("Abcdefg1\u0301")
+        self.assertEqual(result["score"], 4)
+        self.assertIn("Add special characters (!@#$...)", result["tips"])
+
 
 if __name__ == "__main__":
     unittest.main()

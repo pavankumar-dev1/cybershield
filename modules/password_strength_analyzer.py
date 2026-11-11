@@ -1,4 +1,5 @@
-import re
+import unicodedata
+
 
 def analyze_password(password):
     score = 0
@@ -9,22 +10,22 @@ def analyze_password(password):
     else:
         tips.append("Use at least 8 characters")
 
-    if re.search(r"[A-Z]", password):
+    if any(char.isupper() for char in password):
         score += 1
     else:
         tips.append("Add uppercase letters")
 
-    if re.search(r"[a-z]", password):
+    if any(char.islower() for char in password):
         score += 1
     else:
         tips.append("Add lowercase letters")
 
-    if re.search(r"[0-9]", password):
+    if any(char.isdecimal() for char in password):
         score += 1
     else:
         tips.append("Add numbers")
 
-    if re.search(r"[^A-Za-z0-9\s]", password):
+    if any(unicodedata.category(char)[0] in {"P", "S"} for char in password):
         score += 1
     else:
         tips.append("Add special characters (!@#$...)")
