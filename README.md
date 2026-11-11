@@ -51,6 +51,16 @@ A Flask-based cybersecurity toolkit that brings several practical security check
 
 5. Open http://127.0.0.1:10000 in your browser. The application uses port **10000** by default; if you set the `PORT` environment variable, use that port instead.
 
+## Run tests
+
+Run the built-in unit test suite from the repository root:
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+The tests cover API validation, request-size handling, and the individual security-analysis modules.
+
 ## Responsible use
 
 Use the toolkit only on systems, URLs, networks, and data that you own or are explicitly authorized to assess. Do not treat automated results as definitive security findings.
