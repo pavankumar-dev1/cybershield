@@ -5,10 +5,10 @@ def analyze_password(password):
     score = 0
     tips = []
 
-    if len(password) >= 8:
+    if len(password) >= 12:
         score += 1
     else:
-        tips.append("Use at least 8 characters")
+        tips.append("Use at least 12 characters")
 
     if any(char.isupper() for char in password):
         score += 1
