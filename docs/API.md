@@ -5,7 +5,7 @@ The Flask application exposes JSON POST endpoints. Send a JSON object with the f
 | Endpoint | Request fields | Purpose |
 |---|---|---|
 | `/api/footprint` | `text` (string) | Checks text for configured leak-related keywords |
-| `/api/password` | `password` (string) | Scores basic password characteristics |
+| `/api/password` | `password` (string) | Scores password character variety and recommends at least 12 characters |
 | `/api/phishing` | `url` (string) | Reports heuristic URL indicators |
 | `/api/permissions` | `permissions` (string or list of strings) | Reviews Android-style permission names |
 | `/api/wifi` | `encryption` (string), `is_public` (boolean) | Estimates Wi-Fi configuration risk |
