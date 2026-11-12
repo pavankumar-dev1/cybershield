@@ -46,6 +46,18 @@ class PhishingDetectorTests(unittest.TestCase):
         self.assertEqual(result["status"], "MEDIUM")
         self.assertIn("URL uses IP address instead of domain", result["flags"])
 
+    def test_hostless_or_unsupported_urls_are_not_reported_safe(self):
+        for url in ("javascript:alert(1)", "https:///missing-host", "://broken"):
+            with self.subTest(url=url):
+                result = detect_phishing(url)
+                self.assertEqual(result["status"], "MEDIUM")
+                self.assertIn("Malformed URL or unsupported scheme", result["flags"])
+
+    def test_embedded_url_credentials_are_flagged(self):
+        result = detect_phishing("https://trusted.example@evil.example/login")
+        self.assertIn("URL contains embedded credentials", result["flags"])
+        self.assertGreaterEqual(result["score"], 2)
+
 
 if __name__ == "__main__":
     unittest.main()
