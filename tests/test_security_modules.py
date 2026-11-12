@@ -44,6 +44,11 @@ class SecurityModuleTests(unittest.TestCase):
         self.assertEqual(result["max_score"], 6)
         self.assertEqual(result["overall"], "MEDIUM")
 
+    def test_duplicate_permissions_are_counted_only_once(self):
+        result = analyze_permissions(["CAMERA", "camera", " READ_SMS "])
+        self.assertEqual(len(result["risky"]), 2)
+        self.assertEqual(result["status"], "MEDIUM")
+
 
 if __name__ == "__main__":
     unittest.main()
