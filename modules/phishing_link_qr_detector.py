@@ -20,6 +20,17 @@ def detect_phishing(url):
         parsed_url = None
         hostname = ""
 
+    # Reject malformed, hostless, or unsupported-scheme inputs instead of
+    # accidentally treating them as clean URLs.
+    if not parsed_url or parsed_url.scheme not in {"http", "https"} or not hostname:
+        score += 3
+        flags.append("Malformed URL or unsupported scheme")
+
+    # URLs containing embedded credentials can disguise the real destination.
+    if parsed_url and parsed_url.username is not None:
+        score += 2
+        flags.append("URL contains embedded credentials")
+
     # HTTP (not HTTPS)
     if parsed_url and parsed_url.scheme == "http":
         score += 2
