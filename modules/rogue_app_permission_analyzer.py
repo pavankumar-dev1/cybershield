@@ -17,8 +17,12 @@ def analyze_permissions(permissions):
     risky = []
     safe = []
 
+    seen = set()
     for p in permissions:
         p_upper = p.strip().upper()
+        if not p_upper or p_upper in seen:
+            continue
+        seen.add(p_upper)
         if p_upper in DANGEROUS_PERMISSIONS:
             risky.append({
                 "permission": p_upper,
