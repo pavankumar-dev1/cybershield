@@ -16,6 +16,7 @@ def detect_phishing(url):
     try:
         parsed_url = urlsplit(text)
         hostname = (parsed_url.hostname or "").rstrip(".")
+        _port = parsed_url.port
     except ValueError:
         parsed_url = None
         hostname = ""

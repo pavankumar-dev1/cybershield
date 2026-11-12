@@ -58,6 +58,21 @@ class PhishingDetectorTests(unittest.TestCase):
         self.assertIn("URL contains embedded credentials", result["flags"])
         self.assertGreaterEqual(result["score"], 2)
 
+    def test_non_numeric_port_is_reported_as_malformed(self):
+        result = detect_phishing("https://example.com:not-a-port/")
+        self.assertEqual(result["status"], "MEDIUM")
+        self.assertIn("Malformed URL or unsupported scheme", result["flags"])
+
+    def test_out_of_range_port_is_reported_as_malformed(self):
+        result = detect_phishing("https://example.com:99999/")
+        self.assertEqual(result["status"], "MEDIUM")
+        self.assertIn("Malformed URL or unsupported scheme", result["flags"])
+
+    def test_valid_maximum_port_is_accepted(self):
+        result = detect_phishing("https://example.com:65535/")
+        self.assertEqual(result["status"], "SAFE")
+        self.assertEqual(result["flags"], [])
+
 
 if __name__ == "__main__":
     unittest.main()
